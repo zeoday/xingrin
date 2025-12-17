@@ -2,10 +2,10 @@
 生成测试数据的管理命令
 
 用法：
-    python manage.py generate_test_data --target example.com --count 100000
+    python manage.py generate_test_data --target test.com --count 100000
     
 性能测试：
-    python manage.py generate_test_data --target example.com --count 10000 --batch-size 500 --benchmark
+    python manage.py generate_test_data --target test.com --count 10000 --batch-size 500 --benchmark
 """
 
 import random
@@ -27,7 +27,7 @@ class Command(BaseCommand):
             '--target',
             type=str,
             required=True,
-            help='目标域名（如 example.com）'
+            help='目标域名（如 test.com）'
         )
         parser.add_argument(
             '--count',
