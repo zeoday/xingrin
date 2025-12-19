@@ -118,8 +118,25 @@ class WorkerNodeViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def heartbeat(self, request, pk=None):
-        """接收心跳上报（写 Redis，首次心跳更新部署状态）"""
+        """
+        接收心跳上报（写 Redis，首次心跳更新部署状态，检查版本）
+        
+        请求体:
+        {
+            "cpu_percent": 50.0,
+            "memory_percent": 60.0,
+            "version": "v1.0.9"
+        }
+        
+        返回:
+        {
+            "status": "ok",
+            "need_update": true/false,
+            "server_version": "v1.0.19"
+        }
+        """
         from apps.engine.services.worker_load_service import worker_load_service
+        from django.conf import settings
         
         worker = self.get_object()
         info = request.data if request.data else {}
@@ -134,7 +151,24 @@ class WorkerNodeViewSet(viewsets.ModelViewSet):
             worker.status = 'online'
             worker.save(update_fields=['status'])
         
-        return Response({'status': 'ok'})
+        # 3. 版本检查：比较 agent 版本与 server 版本
+        agent_version = info.get('version', '')
+        server_version = settings.IMAGE_TAG  # Server 当前版本
+        need_update = False
+        
+        if agent_version and agent_version != 'unknown':
+            # 版本不匹配时通知 agent 更新
+            need_update = agent_version != server_version
+            if need_update:
+                logger.info(
+                    f"Worker {worker.name} 版本不匹配: agent={agent_version}, server={server_version}"
+                )
+        
+        return Response({
+            'status': 'ok',
+            'need_update': need_update,
+            'server_version': server_version
+        })
     
     @action(detail=False, methods=['post'])
     def register(self, request):

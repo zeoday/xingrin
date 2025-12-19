@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================
 # XingRin Agent
-# 用途：心跳上报 + 负载监控
+# 用途：心跳上报 + 负载监控 + 版本检查
 # 适用：远程 VPS 或 Docker 容器内
 # ============================================
 
@@ -16,6 +16,9 @@ MARKER_DIR="/opt/xingrin"
 SRC_DIR="${MARKER_DIR}/src"
 ENV_FILE="${SRC_DIR}/backend/.env"
 INTERVAL=${AGENT_INTERVAL:-3}
+
+# Agent 版本（从环境变量获取，由 Docker 镜像构建时注入）
+AGENT_VERSION="${IMAGE_TAG:-unknown}"
 
 # 颜色定义
 GREEN='\033[0;32m'
@@ -172,22 +175,72 @@ while true; do
     fi
 
     # 构建 JSON 数据（使用数值而非字符串，便于比较和排序）
+    # 包含版本号，供 Server 端检查版本一致性
     JSON_DATA=$(cat <<EOF
 {
     "cpu_percent": $CPU_PERCENT,
-    "memory_percent": $MEM_PERCENT
+    "memory_percent": $MEM_PERCENT,
+    "version": "$AGENT_VERSION"
 }
 EOF
 )
     
-    # 发送心跳
-    RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" -X POST \
+    # 发送心跳，获取响应内容
+    RESPONSE_FILE=$(mktemp)
+    HTTP_CODE=$(curl -k -s -o "$RESPONSE_FILE" -w "%{http_code}" -X POST \
         -H "Content-Type: application/json" \
         -d "$JSON_DATA" \
         "${API_URL}/api/workers/${WORKER_ID}/heartbeat/" 2>/dev/null || echo "000")
+    RESPONSE_BODY=$(cat "$RESPONSE_FILE" 2>/dev/null)
+    rm -f "$RESPONSE_FILE"
         
-    if [ "$RESPONSE" != "200" ] && [ "$RESPONSE" != "201" ]; then
-        log "${YELLOW}心跳发送失败 (HTTP $RESPONSE)${NC}"
+    if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "201" ]; then
+        log "${YELLOW}心跳发送失败 (HTTP $HTTP_CODE)${NC}"
+    else
+        # 检查是否需要更新
+        NEED_UPDATE=$(echo "$RESPONSE_BODY" | grep -oE '"need_update":\s*(true|false)' | grep -oE '(true|false)')
+        if [ "$NEED_UPDATE" = "true" ]; then
+            SERVER_VERSION=$(echo "$RESPONSE_BODY" | grep -oE '"server_version":\s*"[^"]+"' | sed 's/.*"\([^"]*\)"$/\1/')
+            log "${YELLOW}检测到版本不匹配: Agent=$AGENT_VERSION, Server=$SERVER_VERSION${NC}"
+            log "${GREEN}正在自动更新...${NC}"
+            
+            # 执行自动更新
+            if [ "$RUN_MODE" = "container" ]; then
+                # 容器模式：通知外部重启（退出后由 docker-compose restart policy 重启）
+                log "容器模式：退出以触发重启更新"
+                exit 0
+            else
+                # 远程模式：拉取新镜像并重启 agent 容器
+                log "远程模式：更新 agent 镜像..."
+                DOCKER_USER="${DOCKER_USER:-yyhuni}"
+                NEW_IMAGE="${DOCKER_USER}/xingrin-agent:${SERVER_VERSION}"
+                
+                # 拉取新镜像
+                if $DOCKER_CMD pull "$NEW_IMAGE" 2>/dev/null; then
+                    log "${GREEN}镜像拉取成功: $NEW_IMAGE${NC}"
+                    
+                    # 停止当前容器并用新镜像重启
+                    CONTAINER_NAME="xingrin-agent"
+                    $DOCKER_CMD stop "$CONTAINER_NAME" 2>/dev/null || true
+                    $DOCKER_CMD rm "$CONTAINER_NAME" 2>/dev/null || true
+                    
+                    # 重新启动（使用相同的环境变量）
+                    $DOCKER_CMD run -d \
+                        --name "$CONTAINER_NAME" \
+                        --restart unless-stopped \
+                        -e HEARTBEAT_API_URL="$API_URL" \
+                        -e WORKER_ID="$WORKER_ID" \
+                        -e IMAGE_TAG="$SERVER_VERSION" \
+                        -v /proc:/host/proc:ro \
+                        "$NEW_IMAGE"
+                    
+                    log "${GREEN}Agent 已更新到 $SERVER_VERSION${NC}"
+                    exit 0
+                else
+                    log "${RED}镜像拉取失败: $NEW_IMAGE${NC}"
+                fi
+            fi
+        fi
     fi
 
     # 休眠

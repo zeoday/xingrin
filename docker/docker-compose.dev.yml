@@ -54,19 +54,19 @@ services:
       retries: 3
       start_period: 60s
 
-  # Agent：心跳上报 + 负载监控
+  # Agent：心跳上报 + 负载监控 + 版本检查
   agent:
     build:
       context: ..
-      dockerfile: docker/worker/Dockerfile
+      dockerfile: docker/agent/Dockerfile
+      args:
+        IMAGE_TAG: ${IMAGE_TAG:-dev}
     restart: always
-    env_file:
-      - .env
     environment:
       - SERVER_URL=http://server:8888
       - WORKER_NAME=本地节点
       - IS_LOCAL=true
-    command: bash /app/backend/scripts/worker-deploy/agent.sh
+      - IMAGE_TAG=${IMAGE_TAG:-dev}
     depends_on:
       server:
         condition: service_healthy
