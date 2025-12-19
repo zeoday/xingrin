@@ -116,7 +116,7 @@ class NucleiTemplateRepoViewSet(viewsets.ModelViewSet):
             return Response({"message": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:  # noqa: BLE001
             logger.error("刷新 Nuclei 模板仓库失败: %s", exc, exc_info=True)
-            return Response({"message": "刷新仓库失败"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"message": f"刷新仓库失败: {exc}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({"message": "刷新成功", "result": result}, status=status.HTTP_200_OK)
 
