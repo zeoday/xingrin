@@ -297,6 +297,8 @@ export function DeployTerminalDialog({
             {isConnected && currentStatus === 'deploying' && '正在部署中，点击查看进度'}
             {isConnected && currentStatus === 'online' && '节点运行正常'}
             {isConnected && currentStatus === 'offline' && '节点离线，可尝试重新部署'}
+            {isConnected && currentStatus === 'updating' && '正在自动更新 Agent...'}
+            {isConnected && currentStatus === 'outdated' && '版本过低，需要更新'}
           </div>
           
           {/* 右侧：操作按钮 */}
@@ -331,6 +333,28 @@ export function DeployTerminalDialog({
                   >
                     <IconEye className="mr-1.5 h-4 w-4" />
                     查看进度
+                  </button>
+                )}
+                
+                {/* 更新中 -> 显示"查看进度" */}
+                {currentStatus === 'updating' && (
+                  <button 
+                    onClick={handleAttach}
+                    className="inline-flex items-center px-3 py-1.5 text-sm rounded-md bg-[#e0af68] text-[#1a1b26] hover:bg-[#e0af68]/80 transition-colors"
+                  >
+                    <IconEye className="mr-1.5 h-4 w-4" />
+                    查看进度
+                  </button>
+                )}
+                
+                {/* 版本过低 -> 显示"重新部署" */}
+                {currentStatus === 'outdated' && (
+                  <button 
+                    onClick={handleDeploy}
+                    className="inline-flex items-center px-3 py-1.5 text-sm rounded-md bg-[#f7768e] text-[#1a1b26] hover:bg-[#f7768e]/80 transition-colors"
+                  >
+                    <IconRocket className="mr-1.5 h-4 w-4" />
+                    重新部署
                   </button>
                 )}
                 

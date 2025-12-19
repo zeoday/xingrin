@@ -10,6 +10,8 @@ class WorkerNode(models.Model):
         ('deploying', '部署中'),
         ('online', '在线'),
         ('offline', '离线'),
+        ('updating', '更新中'),
+        ('outdated', '版本过低'),
     ]
     
     name = models.CharField(max_length=100, help_text='节点名称')

@@ -51,6 +51,8 @@ const STATUS_MAP: Record<WorkerStatus, 'online' | 'offline' | 'maintenance' | 'd
   offline: 'offline',
   pending: 'maintenance',
   deploying: 'degraded',
+  updating: 'degraded',
+  outdated: 'offline',
 }
 
 // 状态中文标签
@@ -59,6 +61,8 @@ const STATUS_LABEL: Record<WorkerStatus, string> = {
   offline: '离线',
   pending: '等待部署',
   deploying: '部署中',
+  updating: '更新中',
+  outdated: '版本过低',
 }
 
 // 统计卡片组件

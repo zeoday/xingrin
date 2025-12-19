@@ -134,6 +134,17 @@ class WorkerNodeViewSet(viewsets.ModelViewSet):
             "need_update": true/false,
             "server_version": "v1.0.19"
         }
+        
+        状态流转:
+        ┌─────────────────────────────────────────────────────────────────────┐
+        │ 场景                        │ 状态变化                              │
+        ├─────────────────────────────┼───────────────────────────────────────┤
+        │ 首次心跳                    │ pending/deploying → online            │
+        │ 远程 Worker 版本不匹配      │ online → updating → (更新成功) online │
+        │ 远程 Worker 更新失败        │ updating → outdated                   │
+        │ 本地 Worker 版本不匹配      │ online → outdated (需手动 update.sh)  │
+        │ 版本匹配                    │ updating/outdated → online            │
+        └─────────────────────────────┴───────────────────────────────────────┘
         """
         from apps.engine.services.worker_load_service import worker_load_service
         from django.conf import settings
@@ -165,9 +176,19 @@ class WorkerNodeViewSet(viewsets.ModelViewSet):
                 )
                 
                 # 远程 Worker：服务端主动通过 SSH 触发更新
-                # 旧版 agent 不会解析 need_update，所以需要服务端主动推送
                 if not worker.is_local and worker.ip_address:
                     self._trigger_remote_agent_update(worker, server_version)
+                else:
+                    # 本地 Worker 版本不匹配：标记为 outdated
+                    # 需要用户手动执行 update.sh 更新
+                    if worker.status != 'outdated':
+                        worker.status = 'outdated'
+                        worker.save(update_fields=['status'])
+            else:
+                # 版本匹配，确保状态为 online
+                if worker.status in ('updating', 'outdated'):
+                    worker.status = 'online'
+                    worker.save(update_fields=['status'])
         
         return Response({
             'status': 'ok',
@@ -192,6 +213,9 @@ class WorkerNodeViewSet(viewsets.ModelViewSet):
         if not redis_client.set(lock_key, "1", nx=True, ex=60):
             logger.debug(f"Worker {worker.name} 更新已在进行中，跳过")
             return
+        
+        # 获取锁成功，设置状态为 updating
+        self._set_worker_status(worker.id, 'updating')
         
         # 提取数据避免后台线程访问 ORM
         worker_id = worker.id
@@ -231,17 +255,29 @@ class WorkerNodeViewSet(viewsets.ModelViewSet):
                 
                 if success:
                     logger.info(f"Worker {worker_name} 远程更新成功")
+                    # 更新成功后，新 agent 心跳会自动把状态改回 online
                 else:
                     logger.warning(f"Worker {worker_name} 远程更新失败: {message}")
+                    # 更新失败，标记为 outdated
+                    self._set_worker_status(worker_id, 'outdated')
                     
             except Exception as e:
                 logger.error(f"Worker {worker_name} 远程更新异常: {e}")
+                self._set_worker_status(worker_id, 'outdated')
             finally:
                 # 释放锁
                 redis_client.delete(lock_key)
         
         # 后台执行，不阻塞心跳响应
         threading.Thread(target=_async_update, daemon=True).start()
+    
+    def _set_worker_status(self, worker_id: int, status: str):
+        """更新 Worker 状态（用于后台线程）"""
+        try:
+            from apps.engine.models import WorkerNode
+            WorkerNode.objects.filter(id=worker_id).update(status=status)
+        except Exception as e:
+            logger.error(f"更新 Worker {worker_id} 状态失败: {e}")
     
     @action(detail=False, methods=['post'])
     def register(self, request):

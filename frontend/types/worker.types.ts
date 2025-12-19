@@ -3,7 +3,7 @@
  */
 
 // Worker 状态枚举（前后端统一）
-export type WorkerStatus = 'pending' | 'deploying' | 'online' | 'offline'
+export type WorkerStatus = 'pending' | 'deploying' | 'online' | 'offline' | 'updating' | 'outdated'
 
 // Worker 节点
 export interface WorkerNode {
