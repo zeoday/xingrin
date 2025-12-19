@@ -79,19 +79,19 @@ ENV GOPATH=/root/go
 ENV PATH=/usr/local/go/bin:$PATH:$GOPATH/bin
 ENV GOPROXY=https://goproxy.cn,direct
 
-# 5. 安装 uv（ Python 包管理器）
-RUN pip install uv --break-system-packages
-
-# 安装 Python 依赖（使用 uv 并行下载）
-COPY backend/requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system -r requirements.txt --break-system-packages && \
-    rm -f /usr/local/lib/python3.*/dist-packages/argparse.py && \
-    rm -rf /usr/local/lib/python3.*/dist-packages/__pycache__/argparse*
-
 COPY --from=go-builder /usr/local/go /usr/local/go
 COPY --from=go-builder /go/bin/* /usr/local/bin/
 COPY --from=go-builder /usr/local/bin/massdns /usr/local/bin/massdns
+
+# 5. 安装 uv（ Python 包管理器）并安装 Python 依赖
+COPY backend/requirements.txt .
+RUN pip install uv --break-system-packages && \
+    uv pip install --system -r requirements.txt --break-system-packages && \
+    rm -f /usr/local/lib/python3.*/dist-packages/argparse.py && \
+    rm -rf /usr/local/lib/python3.*/dist-packages/__pycache__/argparse* && \
+    rm -rf /root/.cache/uv && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # 6. 复制后端代码
 COPY backend /app/backend
