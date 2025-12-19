@@ -51,103 +51,48 @@
 
 #### 扫描流程架构
 
-完整的扫描流程包括：子域名发现、端口扫描、站点发现、URL 收集、目录扫描、漏洞扫描
+完整的扫描流程包括：子域名发现、端口扫描、站点发现、URL 收集、目录扫描、漏洞扫描等阶段
+
 ```mermaid
-flowchart TB
-    START[Start Scan]
-    TARGET[Input Target]
+flowchart LR
+    START["开始扫描"]
     
-    START --> TARGET
-    
-    subgraph STAGE1["Stage 1: Discovery Sequential"]
+    subgraph STAGE1["阶段 1: 资产发现"]
         direction TB
-        
-        subgraph SUB["Subdomain Discovery"]
-            direction TB
-            SUBFINDER[subfinder]
-            AMASS[amass]
-            SUBLIST3R[sublist3r]
-            ASSETFINDER[assetfinder]
-            MERGE[Merge & Deduplicate]
-            BRUTEFORCE[puredns bruteforce<br/>Dictionary Attack]
-            MUTATE[dnsgen + puredns<br/>Mutation Generation]
-            RESOLVE[puredns resolve<br/>Alive Verification]
-            
-            SUBFINDER --> MERGE
-            AMASS --> MERGE
-            SUBLIST3R --> MERGE
-            ASSETFINDER --> MERGE
-            MERGE --> BRUTEFORCE
-            BRUTEFORCE --> MUTATE
-            MUTATE --> RESOLVE
-        end
-        
-        subgraph PORT["Port Scan"]
-            NAABU[naabu<br/>Port Discovery]
-        end
-        
-        subgraph SITE["Site Scan"]
-            HTTPX1[httpx<br/>Web Service Detection]
-        end
-        
-        RESOLVE --> NAABU
-        NAABU --> HTTPX1
+        SUB["子域名发现<br/>subfinder, amass, puredns"]
+        PORT["端口扫描<br/>naabu"]
+        SITE["站点识别<br/>httpx"]
+        SUB --> PORT --> SITE
     end
     
-    TARGET --> SUBFINDER
-    TARGET --> AMASS
-    TARGET --> SUBLIST3R
-    TARGET --> ASSETFINDER
-    
-    subgraph STAGE2["Stage 2: Analysis Parallel"]
+    subgraph STAGE2["阶段 2: 深度分析"]
         direction TB
-        
-        subgraph URL["URL Collection"]
-            direction TB
-            WAYMORE[waymore<br/>Historical URLs]
-            KATANA[katana<br/>Crawler]
-            URO[uro<br/>URL Deduplication]
-            HTTPX2[httpx<br/>Alive Verification]
-            
-            WAYMORE --> URO
-            KATANA --> URO
-            URO --> HTTPX2
-        end
-        
-        subgraph DIR["Directory Scan"]
-            FFUF[ffuf<br/>Directory Bruteforce]
-        end
+        URL["URL 收集<br/>waymore, katana"]
+        DIR["目录扫描<br/>ffuf"]
     end
     
-    HTTPX1 --> WAYMORE
-    HTTPX1 --> KATANA
-    HTTPX1 --> FFUF
-    
-    subgraph STAGE3["Stage 3: Vulnerability Sequential"]
-        direction TB
-        
-        subgraph VULN["Vulnerability Scan"]
-            direction LR
-            DALFOX[dalfox<br/>XSS Scan]
-            NUCLEI[nuclei<br/>Vulnerability Scan]
-        end
+    subgraph STAGE3["阶段 3: 漏洞检测"]
+        VULN["漏洞扫描<br/>nuclei, dalfox"]
     end
     
-    HTTPX2 --> DALFOX
-    HTTPX2 --> NUCLEI
+    FINISH["扫描完成"]
     
-    DALFOX --> FINISH
-    NUCLEI --> FINISH
-    FFUF --> FINISH
+    START --> STAGE1
+    SITE --> STAGE2
+    STAGE2 --> STAGE3
+    STAGE3 --> FINISH
     
-    FINISH[Scan Complete]
-    
-    style START fill:#ff9999
-    style FINISH fill:#99ff99
-    style TARGET fill:#ffcc99
-    style STAGE1 fill:#e6f3ff
-    style STAGE2 fill:#fff4e6
-    style STAGE3 fill:#ffe6f0
+    style START fill:#34495e,stroke:#2c3e50,stroke-width:2px,color:#fff
+    style FINISH fill:#27ae60,stroke:#229954,stroke-width:2px,color:#fff
+    style STAGE1 fill:#3498db,stroke:#2980b9,stroke-width:2px,color:#fff
+    style STAGE2 fill:#9b59b6,stroke:#8e44ad,stroke-width:2px,color:#fff
+    style STAGE3 fill:#e67e22,stroke:#d35400,stroke-width:2px,color:#fff
+    style SUB fill:#5dade2,stroke:#3498db,stroke-width:1px,color:#fff
+    style PORT fill:#5dade2,stroke:#3498db,stroke-width:1px,color:#fff
+    style SITE fill:#5dade2,stroke:#3498db,stroke-width:1px,color:#fff
+    style URL fill:#bb8fce,stroke:#9b59b6,stroke-width:1px,color:#fff
+    style DIR fill:#bb8fce,stroke:#9b59b6,stroke-width:1px,color:#fff
+    style VULN fill:#f0b27a,stroke:#e67e22,stroke-width:1px,color:#fff
 ```
 
 详细说明请查看 [扫描流程架构文档](./docs/scan-flow-architecture.md)
@@ -162,74 +107,39 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    subgraph MASTER["🖥️ 主服务器 (Master Server)"]
+    subgraph MASTER["主服务器 (Master Server)"]
         direction TB
         
-        subgraph SERVICES["核心服务"]
-            direction LR
-            FRONTEND["Next.js<br/>前端界面"]
-            BACKEND["Django<br/>后端 API"]
-            DB["PostgreSQL<br/>数据库"]
-            REDIS["Redis<br/>负载缓存"]
-        end
+        REDIS["Redis 负载缓存"]
         
-        subgraph SCHEDULER["⚙️ 任务调度器 (Task Distributor)"]
+        subgraph SCHEDULER["任务调度器 (Task Distributor)"]
             direction TB
-            SUBMIT["1️⃣ 接收扫描任务"]
-            SELECT["2️⃣ 负载感知选择<br/>• 从 Redis 读取实时负载<br/>• CPU 权重 70%<br/>• 内存权重 30%<br/>• 排除高负载节点 (>85%)"]
-            DISPATCH["3️⃣ 智能分发<br/>• 本地: docker run<br/>• 远程: SSH + docker run"]
+            SUBMIT["接收扫描任务"]
+            SELECT["负载感知选择<br/>• 从 Redis 读取实时负载<br/>• CPU 权重 70% + 内存权重 30%<br/>• 排除高负载节点 (>85%)"]
+            DISPATCH["智能分发<br/>• 本地: docker run<br/>• 远程: SSH + docker run"]
             
             SUBMIT --> SELECT
             SELECT --> DISPATCH
         end
         
-        BACKEND --> SUBMIT
         REDIS -.负载数据.-> SELECT
     end
     
-    subgraph WORKERS["🔧 Worker 节点集群"]
+    subgraph WORKERS["Worker 节点集群"]
         direction TB
         
-        subgraph W1["Worker 1 (本地)"]
-            direction TB
-            W1_TOOLS["扫描工具<br/>• nuclei<br/>• httpx<br/>• naabu<br/>• subfinder<br/>• ..."]
-            W1_HEART["💓 心跳上报<br/>CPU: 45%<br/>MEM: 60%<br/>每 3 秒"]
-            W1_TOOLS -.-> W1_HEART
-        end
-        
-        subgraph W2["Worker 2 (远程)"]
-            direction TB
-            W2_TOOLS["扫描工具<br/>• nuclei<br/>• httpx<br/>• naabu<br/>• subfinder<br/>• ..."]
-            W2_HEART["💓 心跳上报<br/>CPU: 30%<br/>MEM: 40%<br/>每 3 秒"]
-            W2_TOOLS -.-> W2_HEART
-        end
-        
-        subgraph W3["Worker N (远程)"]
-            direction TB
-            W3_TOOLS["扫描工具<br/>• nuclei<br/>• httpx<br/>• naabu<br/>• subfinder<br/>• ..."]
-            W3_HEART["💓 心跳上报<br/>CPU: 90%<br/>MEM: 85%<br/>每 3 秒"]
-            W3_TOOLS -.-> W3_HEART
-        end
+        W1["Worker 1 (本地)<br/>CPU: 45% | MEM: 60%"]
+        W2["Worker 2 (远程)<br/>CPU: 30% | MEM: 40%"]
+        W3["Worker N (远程)<br/>CPU: 90% | MEM: 85%"]
     end
     
     DISPATCH -->|任务分发| W1
     DISPATCH -->|任务分发| W2
-    DISPATCH -->|任务分发<br/>高负载跳过| W3
+    DISPATCH -->|高负载跳过| W3
     
-    W1_HEART -.心跳数据<br/>TTL 15s.-> REDIS
-    W2_HEART -.心跳数据<br/>TTL 15s.-> REDIS
-    W3_HEART -.心跳数据<br/>TTL 15s.-> REDIS
-    
-    style MASTER fill:#e6f3ff
-    style SCHEDULER fill:#fff4e6
-    style SELECT fill:#ffe6f0
-    style WORKERS fill:#f0f0f0
-    style W1 fill:#d4edda
-    style W2 fill:#d4edda
-    style W3 fill:#f8d7da
-    style W1_HEART fill:#c3e6cb
-    style W2_HEART fill:#c3e6cb
-    style W3_HEART fill:#f5c6cb
+    W1 -.心跳上报 每3秒.-> REDIS
+    W2 -.心跳上报 每3秒.-> REDIS
+    W3 -.心跳上报 每3秒.-> REDIS
 ```
 
 **负载感知调度算法：**
