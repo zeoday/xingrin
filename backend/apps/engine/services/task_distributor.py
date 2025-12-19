@@ -153,12 +153,18 @@ class TaskDistributor:
             else:
                 scored_workers.append((worker, score, cpu, mem))
         
-        # 降级策略：如果没有正常负载的，使用高负载中最低的
+        # 降级策略：如果没有正常负载的，等待后重新选择
         if not scored_workers:
             if high_load_workers:
-                logger.warning("所有 Worker 高负载，降级选择负载最低的")
+                # 高负载时先等待，给系统喘息时间（默认 60 秒）
+                high_load_wait = getattr(settings, 'HIGH_LOAD_WAIT_SECONDS', 60)
+                logger.warning("所有 Worker 高负载，等待 %d 秒后重试...", high_load_wait)
+                time.sleep(high_load_wait)
+                
+                # 重新选择（递归调用，可能负载已降下来）
+                # 为避免无限递归，这里直接使用高负载中最低的
                 high_load_workers.sort(key=lambda x: x[1])
-                best_worker, score, cpu, mem = high_load_workers[0]
+                best_worker, _, cpu, mem = high_load_workers[0]
                 
                 # 发送高负载通知
                 from apps.common.signals import all_workers_high_load
@@ -169,10 +175,7 @@ class TaskDistributor:
                     mem=mem
                 )
                 
-                logger.info(
-                    "选择 Worker: %s (CPU: %.1f%%, MEM: %.1f%%, Score: %.1f)",
-                    best_worker.name, cpu, mem, score
-                )
+                logger.info("选择 Worker: %s (CPU: %.1f%%, MEM: %.1f%%)", best_worker.name, cpu, mem)
                 return best_worker
             else:
                 logger.warning("没有可用的 Worker")
