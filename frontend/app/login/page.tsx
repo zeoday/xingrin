@@ -126,6 +126,10 @@ export default function LoginPage() {
               </div>
             </CardContent>
           </Card>
+          {/* 版本号 */}
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            {process.env.NEXT_PUBLIC_VERSION || 'dev'}
+          </p>
         </div>
       </div>
     </div>

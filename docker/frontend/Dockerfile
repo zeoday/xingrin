@@ -27,7 +27,9 @@ COPY frontend/ ./
 
 # 设置环境变量（构建时使用）
 ARG NEXT_PUBLIC_API_URL
+ARG IMAGE_TAG=unknown
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_VERSION=${IMAGE_TAG}
 # Docker 内部网络使用服务名 server 作为后端地址
 ENV API_HOST=server
 
