@@ -4,13 +4,6 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
-class SoftDeleteManager(models.Manager):
-    """软删除管理器：默认只返回未删除的记录"""
-    
-    def get_queryset(self):
-        return super().get_queryset().filter(deleted_at__isnull=True)
-
-
 class Subdomain(models.Model):
     """
     子域名模型（纯资产表）
@@ -30,13 +23,6 @@ class Subdomain(models.Model):
     )
     name = models.CharField(max_length=1000, help_text='子域名名称')
     discovered_at = models.DateTimeField(auto_now_add=True, help_text='首次发现时间')
-    
-    # ==================== 软删除字段 ====================
-    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True, help_text='删除时间（NULL表示未删除）')
-    
-    # ==================== 管理器 ====================
-    objects = SoftDeleteManager()  # 默认管理器：只返回未删除的记录
-    all_objects = models.Manager()  # 全量管理器：包括已删除的记录（用于硬删除）
 
     class Meta:
         db_table = 'subdomain'
@@ -48,14 +34,12 @@ class Subdomain(models.Model):
             models.Index(fields=['name', 'target']),  # 复合索引，优化 get_by_names_and_target_id 批量查询
             models.Index(fields=['target']),     # 优化从target_id快速查找下面的子域名
             models.Index(fields=['name']),            # 优化从name快速查找子域名，搜索场景
-            models.Index(fields=['deleted_at', '-discovered_at']),  # 软删除 + 时间索引
         ]
         constraints = [
-            # 部分唯一约束：只对未删除记录生效
+            # 普通唯一约束：name + target 组合唯一
             models.UniqueConstraint(
                 fields=['name', 'target'],
-                condition=models.Q(deleted_at__isnull=True),
-                name='unique_name_target_active'
+                name='unique_subdomain_name_target'
             )
         ]
 
@@ -234,13 +218,6 @@ class WebSite(models.Model):
         blank=True,
         help_text='是否支持虚拟主机'
     )
-    
-    # ==================== 软删除字段 ====================
-    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True, help_text='删除时间（NULL表示未删除）')
-    
-    # ==================== 管理器 ====================
-    objects = SoftDeleteManager()  # 默认管理器：只返回未删除的记录
-    all_objects = models.Manager()  # 全量管理器：包括已删除的记录（用于硬删除）
 
     class Meta:
         db_table = 'website'
@@ -252,14 +229,12 @@ class WebSite(models.Model):
             models.Index(fields=['url']),  # URL索引，优化查询性能
             models.Index(fields=['host']),  # host索引，优化根据主机名查询
             models.Index(fields=['target']),     # 优化从target_id快速查找下面的站点
-            models.Index(fields=['deleted_at', '-discovered_at']),  # 软删除 + 时间索引
         ]
         constraints = [
-            # 部分唯一约束：只对未删除记录生效
+            # 普通唯一约束：url + target 组合唯一
             models.UniqueConstraint(
                 fields=['url', 'target'],
-                condition=models.Q(deleted_at__isnull=True),
-                name='unique_website_url_target_active'
+                name='unique_website_url_target'
             )
         ]
 
@@ -327,13 +302,6 @@ class Directory(models.Model):
     )
     
     discovered_at = models.DateTimeField(auto_now_add=True, help_text='发现时间')
-    
-    # ==================== 软删除字段 ====================
-    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True, help_text='删除时间（NULL表示未删除）')
-    
-    # ==================== 管理器 ====================
-    objects = SoftDeleteManager()  # 默认管理器：只返回未删除的记录
-    all_objects = models.Manager()  # 全量管理器：包括已删除的记录（用于硬删除）
 
     class Meta:
         db_table = 'directory'
@@ -346,14 +314,12 @@ class Directory(models.Model):
             models.Index(fields=['url']),        # URL索引，优化搜索和唯一约束
             models.Index(fields=['website']),    # 站点索引，优化按站点查询
             models.Index(fields=['status']),     # 状态码索引，优化筛选
-            models.Index(fields=['deleted_at', '-discovered_at']),  # 软删除 + 时间索引
         ]
         constraints = [
-            # 部分唯一约束：只对未删除记录生效
+            # 普通唯一约束：website + url 组合唯一
             models.UniqueConstraint(
                 fields=['website', 'url'],
-                condition=models.Q(deleted_at__isnull=True),
-                name='unique_directory_url_website_active'
+                name='unique_directory_url_website'
             ),
         ]
 
@@ -405,18 +371,6 @@ class HostPortMapping(models.Model):
         auto_now_add=True,
         help_text='发现时间'
     )
-    
-    # ==================== 软删除字段 ====================
-    deleted_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        db_index=True,
-        help_text='删除时间（NULL表示未删除）'
-    )
-    
-    # ==================== 管理器 ====================
-    objects = SoftDeleteManager()  # 默认管理器：只返回未删除的记录
-    all_objects = models.Manager()  # 全量管理器：包括已删除的记录（用于硬删除）
 
     class Meta:
         db_table = 'host_port_mapping'
@@ -430,14 +384,12 @@ class HostPortMapping(models.Model):
             models.Index(fields=['port']),             # 优化按端口查询
             models.Index(fields=['host', 'ip']),       # 优化组合查询
             models.Index(fields=['-discovered_at']),   # 优化时间排序
-            models.Index(fields=['deleted_at', '-discovered_at']),  # 软删除 + 时间索引
         ]
         constraints = [
-            # 复合唯一约束：target + host + ip + port 组合唯一（只对未删除记录生效）
+            # 复合唯一约束：target + host + ip + port 组合唯一
             models.UniqueConstraint(
                 fields=['target', 'host', 'ip', 'port'],
-                condition=models.Q(deleted_at__isnull=True),
-                name='unique_target_host_ip_port_active'
+                name='unique_target_host_ip_port'
             ),
         ]
 
@@ -480,13 +432,6 @@ class Vulnerability(models.Model):
     
     # ==================== 时间字段 ====================
     discovered_at = models.DateTimeField(auto_now_add=True, help_text='首次发现时间')
-    
-    # ==================== 软删除字段 ====================
-    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True, help_text='删除时间（NULL表示未删除）')
-    
-    # ==================== 管理器 ====================
-    objects = SoftDeleteManager()
-    all_objects = models.Manager()
 
     class Meta:
         db_table = 'vulnerability'
@@ -499,7 +444,6 @@ class Vulnerability(models.Model):
             models.Index(fields=['severity']),
             models.Index(fields=['source']),
             models.Index(fields=['-discovered_at']),
-            models.Index(fields=['deleted_at', '-discovered_at']),
         ]
 
     def __str__(self):

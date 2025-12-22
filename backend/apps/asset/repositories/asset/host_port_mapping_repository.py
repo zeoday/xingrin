@@ -36,14 +36,15 @@ class DjangoHostPortMappingRepository:
                 return 0
                 
             # 构建记录对象
-            records = []
-            for item in items:
-                records.append(HostPortMapping(
+            records = [
+                HostPortMapping(
                     target_id=item.target_id,
                     host=item.host,
                     ip=item.ip,
                     port=item.port
-                ))
+                )
+                for item in items
+            ]
             
             # 批量创建（忽略冲突，基于唯一约束去重）
             created = HostPortMapping.objects.bulk_create(

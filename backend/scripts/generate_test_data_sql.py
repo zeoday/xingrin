@@ -362,8 +362,8 @@ class TestDataGenerator:
             for prefix in selected:
                 subdomain_name = f'{prefix}.{target_name}'
                 cur.execute("""
-                    INSERT INTO subdomain (name, target_id, discovered_at, deleted_at)
-                    VALUES (%s, %s, NOW(), NULL)
+                    INSERT INTO subdomain (name, target_id, discovered_at)
+                    VALUES (%s, %s, NOW())
                     ON CONFLICT DO NOTHING
                 """, (subdomain_name, target_id))
                 count += 1
@@ -564,7 +564,7 @@ class TestDataGenerator:
         content_types = ['text/html; charset=utf-8', 'application/json', 'text/plain', 'text/css']
         
         # 获取网站信息
-        cur.execute("SELECT id, url, target_id FROM website WHERE deleted_at IS NULL LIMIT 15")
+        cur.execute("SELECT id, url, target_id FROM website LIMIT 15")
         websites = cur.fetchall()
         
         count = 0
@@ -630,8 +630,8 @@ class TestDataGenerator:
                 
                 for port in selected_ports:
                     cur.execute("""
-                        INSERT INTO host_port_mapping (target_id, host, ip, port, discovered_at, deleted_at)
-                        VALUES (%s, %s, %s, %s, NOW(), NULL)
+                        INSERT INTO host_port_mapping (target_id, host, ip, port, discovered_at)
+                        VALUES (%s, %s, %s, %s, NOW())
                         ON CONFLICT DO NOTHING
                     """, (target_id, target_name, ip, port))
                     count += 1
