@@ -131,7 +131,7 @@ export function AssetTrendChart() {
     <Card>
       <CardHeader>
         <CardTitle>资产趋势</CardTitle>
-        <CardDescription>近 7 天各类资产变化 · 点击折线或图例可隐藏/显示</CardDescription>
+        <CardDescription>每小时更新 · 点击折线或图例可隐藏/显示</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
