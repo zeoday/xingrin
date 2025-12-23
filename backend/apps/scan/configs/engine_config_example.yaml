@@ -15,25 +15,25 @@ subdomain_discovery:
   passive_tools:
     subfinder:
       enabled: true
-      timeout: 7200      # 2小时
+      timeout: 3600      # 1小时
       # threads: 10      # 并发 goroutine 数
       
     amass_passive:
       enabled: true
-      timeout: 7200
+      timeout: 3600
       
     amass_active:
       enabled: true      # 主动枚举 + 爆破
-      timeout: 7200
+      timeout: 3600
       
     sublist3r:
       enabled: true
-      timeout: 7200
+      timeout: 3600
       # threads: 50      # 线程数
     
     assetfinder:
       enabled: true
-      timeout: 7200
+      timeout: 3600
 
   # === Stage 2: 主动字典爆破（可选）===
   bruteforce:
@@ -142,8 +142,8 @@ vuln_scan:
       request-timeout: 10    # 单个请求超时秒数
       only-poc: r            # 只输出 POC 结果（r: 反射型）
       ignore-return: "302,404,403"  # 忽略的返回码
-      delay: 100             # 扫描内部延迟
-      worker: 10             # worker 数量
+      delay: 50             # 请求间隔（毫秒）
+      worker: 20             # worker 数量
       user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
       # blind-xss-server: xxx  # 盲打 XSS 回连服务地址
 

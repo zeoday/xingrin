@@ -205,7 +205,7 @@ VULN_SCAN_COMMANDS = {
     },
     'nuclei': {
         # nuclei 漏洞扫描
-        # -j: JSON 输出
+        # -j: JSON 输出（每行一条完整 JSON）
         # -silent: 静默模式
         # -l: 输入 URL 列表文件
         # -t: 模板目录路径（支持多个仓库，多次 -t 由 template_args 直接拼接）

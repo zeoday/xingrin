@@ -120,8 +120,6 @@ def endpoints_vuln_scan_flow(
             )
 
             raw_timeout = tool_config.get("timeout", 600)
-            timeout = 600
-            min_timeout = 600  # 最小超时时间：10 分钟
 
             if isinstance(raw_timeout, str) and raw_timeout == "auto":
                 # timeout=auto 时，根据 endpoints_file 行数自动计算超时时间
@@ -132,15 +130,10 @@ def endpoints_vuln_scan_flow(
                     file_path=str(endpoints_file),
                     base_per_time=base_per_time,
                 )
-                # 确保不低于最小超时时间
-                timeout = max(timeout, min_timeout)
             else:
                 try:
                     timeout = int(raw_timeout)
-                    # 确保不低于最小超时时间
-                    timeout = max(timeout, min_timeout)
                 except (TypeError, ValueError) as e:
-                    # 配置错误应当直接暴露，避免默默使用默认值导致排查困难
                     raise ValueError(
                         f"工具 {tool_name} 的 timeout 配置无效: {raw_timeout!r}"
                     ) from e
@@ -180,7 +173,7 @@ def endpoints_vuln_scan_flow(
                     target_id=target_id,
                     cwd=str(vuln_scan_dir),
                     shell=True,
-                    batch_size=10,
+                    batch_size=1,
                     timeout=timeout,
                     log_file=str(log_file),
                 )
