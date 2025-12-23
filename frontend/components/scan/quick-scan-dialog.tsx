@@ -257,14 +257,14 @@ export function QuickScanDialog({ trigger }: QuickScanDialogProps) {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="target">目标列表</Label>
-                <div className="flex border rounded-md overflow-hidden h-[180px]">
+                <div className="flex border rounded-md overflow-hidden h-[280px]">
                   {/* 行号列 - 固定宽度 */}
                   <div className="flex-shrink-0 w-10 border-r bg-muted/50">
                     <div 
                       ref={lineNumbersRef}
                       className="py-2 px-1.5 text-right font-mono text-xs text-muted-foreground leading-[1.4] h-full overflow-y-auto scrollbar-hide"
                     >
-                      {Array.from({ length: Math.max(targetInput.split('\n').length, 8) }, (_, i) => (
+                      {Array.from({ length: Math.max(targetInput.split('\n').length, 12) }, (_, i) => (
                         <div key={i + 1} className="h-[20px]">
                           {i + 1}
                         </div>
