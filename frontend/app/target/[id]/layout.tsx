@@ -140,7 +140,7 @@ export default function TargetLayout({
               <Link href={tabPaths.subdomain} className="flex items-center gap-0.5">
                 Subdomains
                 {counts.subdomain > 0 && (
-                  <Badge className="text-xs bg-primary text-primary-foreground border-0">
+                  <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 rounded-full px-1.5 text-xs">
                     {counts.subdomain}
                   </Badge>
                 )}
@@ -150,7 +150,7 @@ export default function TargetLayout({
               <Link href={tabPaths["ip-addresses"]} className="flex items-center gap-0.5">
                 IP Addresses
                 {counts["ip-addresses"] > 0 && (
-                  <Badge className="text-xs bg-primary text-primary-foreground border-0">
+                  <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 rounded-full px-1.5 text-xs">
                     {counts["ip-addresses"]}
                   </Badge>
                 )}
@@ -160,7 +160,7 @@ export default function TargetLayout({
               <Link href={tabPaths.endpoints} className="flex items-center gap-0.5">
                 URLs
                 {counts.endpoints > 0 && (
-                  <Badge className="text-xs bg-primary text-primary-foreground border-0">
+                  <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 rounded-full px-1.5 text-xs">
                     {counts.endpoints}
                   </Badge>
                 )}
@@ -170,7 +170,7 @@ export default function TargetLayout({
               <Link href={tabPaths.websites} className="flex items-center gap-0.5">
                 Websites
                 {counts.websites > 0 && (
-                  <Badge className="text-xs bg-primary text-primary-foreground border-0">
+                  <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 rounded-full px-1.5 text-xs">
                     {counts.websites}
                   </Badge>
                 )}
@@ -180,7 +180,7 @@ export default function TargetLayout({
               <Link href={tabPaths.directories} className="flex items-center gap-0.5">
                 Directories
                 {counts.directories > 0 && (
-                  <Badge className="text-xs bg-primary text-primary-foreground border-0">
+                  <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 rounded-full px-1.5 text-xs">
                     {counts.directories}
                   </Badge>
                 )}
@@ -190,7 +190,7 @@ export default function TargetLayout({
               <Link href={tabPaths.vulnerabilities} className="flex items-center gap-0.5">
                 Vulnerabilities
                 {counts.vulnerabilities > 0 && (
-                  <Badge className="text-xs bg-primary text-primary-foreground border-0">
+                  <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 rounded-full px-1.5 text-xs">
                     {counts.vulnerabilities}
                   </Badge>
                 )}
