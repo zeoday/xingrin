@@ -212,8 +212,7 @@ show_summary() {
     fi
     
     echo -e "${GREEN}访问地址：${RESET}"
-    printf "   %-16s %s\n" "XingRin:" "https://${ACCESS_HOST}/"
-    echo -e "   ${YELLOW}(HTTP 会自动跳转到 HTTPS)${RESET}"
+    printf "   %-16s %s\n" "XingRin:" "https://${ACCESS_HOST}:8083/"
     echo
     
     echo -e "${YELLOW}默认登录账号：${RESET}"
