@@ -181,18 +181,18 @@ function WorkerCardView({
                 <div className="p-2 rounded-lg bg-muted">
                   <IconServer className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-base">{worker.name}</CardTitle>
-                    {worker.isLocal && (
-                      <Badge variant="secondary" className="text-xs">本地</Badge>
-                    )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-base">{worker.name}</CardTitle>
+                      {worker.isLocal && (
+                        <Badge variant="outline" className="text-xs bg-[#848d97]/10 text-[#848d97] border-[#848d97]/20">本地</Badge>
+                      )}
+                    </div>
+                    <Status status={STATUS_MAP[worker.status]} className="mt-1">
+                      <StatusIndicator />
+                      <StatusLabel>{STATUS_LABEL[worker.status]}</StatusLabel>
+                    </Status>
                   </div>
-                  <Status status={STATUS_MAP[worker.status]} className="mt-1">
-                    <StatusIndicator />
-                    <StatusLabel>{STATUS_LABEL[worker.status]}</StatusLabel>
-                  </Status>
-                </div>
               </div>
               {/* 本地节点不显示编辑和删除按钮 */}
               {!worker.isLocal && (
